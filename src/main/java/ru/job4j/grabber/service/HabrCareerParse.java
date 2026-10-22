@@ -3,18 +3,24 @@ package ru.job4j.grabber.service;
 import org.apache.log4j.Logger;
 import org.jsoup.Jsoup;
 import ru.job4j.grabber.model.Post;
+import ru.job4j.grabber.utils.DateTimeParser;
 
 import java.io.IOException;
-import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 
 public class HabrCareerParse implements Parse {
+    private final DateTimeParser dateTimeParser;
     private static final Logger LOG = Logger.getLogger(HabrCareerParse.class);
     private static final String SOURCE_LINK = "https://career.habr.com";
     private static final String PREFIX = "/vacancies?page=";
     private static final String SUFFIX = "&q=Java%20developer&type=all";
     private static final int PAGE = 5;
+
+    public HabrCareerParse(DateTimeParser dateTimeParser) {
+        this.dateTimeParser = dateTimeParser;
+    }
 
     @Override
     public List<Post> fetch() {
@@ -40,10 +46,8 @@ public class HabrCareerParse implements Parse {
                     post.setTitle(vacancyName);
                     post.setLink(link);
                     post.setDescription(retrieveDescription(link));
-                    post.setTime(OffsetDateTime
-                            .parse(date)
-                            .toInstant()
-                            .toEpochMilli());
+                    long millis = dateTimeParser.parse(date).toInstant(ZoneOffset.UTC).toEpochMilli();
+                    post.setTime(millis);
                     result.add(post);
                 });
             }
