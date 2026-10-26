@@ -2,6 +2,7 @@ package ru.job4j.grabber.service;
 
 import org.apache.log4j.Logger;
 import org.jsoup.Jsoup;
+import org.jsoup.nodes.Element;
 import ru.job4j.grabber.model.Post;
 import ru.job4j.grabber.utils.DateTimeParser;
 
@@ -32,23 +33,10 @@ public class HabrCareerParse implements Parse {
                 var document = connection.get();
                 var rows = document.select(".vacancy-card__inner");
                 rows.forEach(row -> {
-                    var titleElement = row.select(".vacancy-card__title").first();
-                    var dateElement = row.select(".vacancy-card__date time").first();
-                    if (titleElement == null || dateElement == null) {
-                        return;
+                    Post post = createPost(row);
+                    if (post != null) {
+                        result.add(post);
                     }
-                    var linkElement = titleElement.child(0);
-                    String vacancyName = titleElement.text();
-                    String link = String.format("%s%s", SOURCE_LINK,
-                            linkElement.attr("href"));
-                    String date = dateElement.attr("datetime");
-                    var post = new Post();
-                    post.setTitle(vacancyName);
-                    post.setLink(link);
-                    post.setDescription(retrieveDescription(link));
-                    long millis = dateTimeParser.parse(date).toInstant(ZoneOffset.UTC).toEpochMilli();
-                    post.setTime(millis);
-                    result.add(post);
                 });
             }
         } catch (IOException e) {
@@ -70,5 +58,25 @@ public class HabrCareerParse implements Parse {
             LOG.error("When load vacancy description for link: " + link, e);
         }
         return vacancyDescription;
+    }
+
+    private Post createPost(Element row) {
+        var titleElement = row.select(".vacancy-card__title").first();
+        var dateElement = row.select(".vacancy-card__date time").first();
+        if (titleElement == null || dateElement == null) {
+            return null;
+        }
+        var linkElement = titleElement.child(0);
+        String vacancyName = titleElement.text();
+        String link = String.format("%s%s", SOURCE_LINK,
+                linkElement.attr("href"));
+        String date = dateElement.attr("datetime");
+        var post = new Post();
+        post.setTitle(vacancyName);
+        post.setLink(link);
+        post.setDescription(retrieveDescription(link));
+        long millis = dateTimeParser.parse(date).toInstant(ZoneOffset.UTC).toEpochMilli();
+        post.setTime(millis);
+        return post;
     }
 }
